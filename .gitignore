@@ -1,0 +1,27 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+dist/
+build/
+*.egg
+
+# Secrets & local state
+.env
+*.db
+*.sqlite3
+
+# Node / Next.js
+node_modules/
+.next/
+out/
+
+# Data & build artifacts
+data/
+*.zip
+
+# OS
+.DS_Store
+Thumbs.db

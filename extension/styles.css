@@ -1,0 +1,647 @@
+/* ── Tovbase Score Overlay ────────────────────────────────────────
+   All classes prefixed with .tg- to avoid host-page conflicts.
+   ─────────────────────────────────────────────────────────────── */
+
+/* Reset within our root */
+.tg-root,
+.tg-root *,
+.tg-root *::before,
+.tg-root *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  line-height: 1.4;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ── Positioning ─────────────────────────────────────────────── */
+
+.tg-root--fixed {
+  position: fixed;
+  top: 80px;
+  right: 20px;
+  z-index: 2147483647;
+}
+
+.tg-root--anchored {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  z-index: 999;
+}
+
+/* ── Compact badge (pill) ────────────────────────────────────── */
+
+.tg-badge {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px 6px 6px;
+  border-radius: 100px;
+  background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(16px) saturate(180%);
+  -webkit-backdrop-filter: blur(16px) saturate(180%);
+  box-shadow:
+    0 1px 3px rgba(0, 0, 0, 0.08),
+    0 4px 16px rgba(0, 0, 0, 0.06),
+    0 0 0 1px rgba(0, 0, 0, 0.04);
+  cursor: pointer;
+  user-select: none;
+  transition: box-shadow 0.2s ease, transform 0.2s ease;
+  white-space: nowrap;
+}
+
+.tg-badge:hover {
+  box-shadow:
+    0 2px 8px rgba(0, 0, 0, 0.1),
+    0 8px 32px rgba(0, 0, 0, 0.1),
+    0 0 0 1px rgba(0, 0, 0, 0.06);
+  transform: translateY(-1px);
+}
+
+/* Dark mode badge */
+.tg-dark .tg-badge {
+  background: rgba(24, 27, 38, 0.92);
+  box-shadow:
+    0 1px 3px rgba(0, 0, 0, 0.3),
+    0 4px 16px rgba(0, 0, 0, 0.25),
+    0 0 0 1px rgba(255, 255, 255, 0.06);
+}
+.tg-dark .tg-badge:hover {
+  box-shadow:
+    0 2px 8px rgba(0, 0, 0, 0.4),
+    0 8px 32px rgba(0, 0, 0, 0.35),
+    0 0 0 1px rgba(255, 255, 255, 0.08);
+}
+
+/* Score ring (SVG container) */
+.tg-badge__ring {
+  width: 36px;
+  height: 36px;
+  flex-shrink: 0;
+  position: relative;
+}
+.tg-badge__ring svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+.tg-badge__ring-track {
+  fill: none;
+  stroke: #e5e7eb;
+  stroke-width: 3;
+}
+.tg-dark .tg-badge__ring-track {
+  stroke: #374151;
+}
+.tg-badge__ring-fill {
+  fill: none;
+  stroke-width: 3;
+  stroke-linecap: round;
+  transition: stroke-dashoffset 0.8s cubic-bezier(0.4, 0, 0.2, 1), stroke 0.3s ease;
+  transform: rotate(-90deg);
+  transform-origin: 50% 50%;
+}
+.tg-badge__ring-score {
+  font-size: 11px;
+  font-weight: 700;
+  text-anchor: middle;
+  dominant-baseline: central;
+  fill: #111827;
+}
+.tg-dark .tg-badge__ring-score {
+  fill: #f3f4f6;
+}
+
+/* Badge text */
+.tg-badge__info {
+  display: flex;
+  flex-direction: column;
+  gap: 0px;
+  min-width: 0;
+}
+.tg-badge__tier {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  transition: color 0.3s ease;
+}
+.tg-badge__brand {
+  font-size: 8px;
+  font-weight: 500;
+  color: #9ca3af;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+.tg-dark .tg-badge__brand {
+  color: #6b7280;
+}
+
+/* ── Loading state ───────────────────────────────────────────── */
+
+.tg-badge--loading .tg-badge__ring-score {
+  display: none;
+}
+
+.tg-spinner {
+  width: 14px;
+  height: 14px;
+  border: 2px solid #e5e7eb;
+  border-top-color: #6366f1;
+  border-radius: 50%;
+  animation: tg-spin 0.6s linear infinite;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+}
+.tg-dark .tg-spinner {
+  border-color: #374151;
+  border-top-color: #818cf8;
+}
+@keyframes tg-spin {
+  to { transform: translate(-50%, -50%) rotate(360deg); }
+}
+
+/* ── Modal (expanded on hover) ───────────────────────────────── */
+
+.tg-modal {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  width: 300px;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.96);
+  backdrop-filter: blur(24px) saturate(180%);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+  box-shadow:
+    0 4px 16px rgba(0, 0, 0, 0.08),
+    0 16px 48px rgba(0, 0, 0, 0.12),
+    0 0 0 1px rgba(0, 0, 0, 0.04);
+  padding: 0;
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(-4px) scale(0.98);
+  transform-origin: top right;
+  transition:
+    opacity 0.25s ease 0.3s,
+    visibility 0.25s ease 0.3s,
+    transform 0.25s cubic-bezier(0.4, 0, 0.2, 1) 0.3s;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+/* Bridge the gap between badge and modal so hover isn't lost */
+.tg-modal::before {
+  content: "";
+  position: absolute;
+  top: -16px;
+  left: 0;
+  right: 0;
+  height: 16px;
+}
+
+.tg-dark .tg-modal {
+  background: rgba(17, 20, 30, 0.96);
+  box-shadow:
+    0 4px 16px rgba(0, 0, 0, 0.3),
+    0 16px 48px rgba(0, 0, 0, 0.4),
+    0 0 0 1px rgba(255, 255, 255, 0.06);
+}
+
+/* Show modal on hover — no delay to appear, 0.3s delay to disappear */
+.tg-root:hover .tg-modal,
+.tg-modal:hover {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0) scale(1);
+  pointer-events: auto;
+  transition-delay: 0s;
+}
+
+/* ── Modal header ────────────────────────────────────────────── */
+
+.tg-modal__header {
+  padding: 20px 20px 16px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.tg-modal__ring {
+  width: 64px;
+  height: 64px;
+  flex-shrink: 0;
+  position: relative;
+}
+.tg-modal__ring svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+.tg-modal__ring-track {
+  fill: none;
+  stroke: #e5e7eb;
+  stroke-width: 4;
+}
+.tg-dark .tg-modal__ring-track {
+  stroke: #1f2937;
+}
+.tg-modal__ring-fill {
+  fill: none;
+  stroke-width: 4;
+  stroke-linecap: round;
+  transition: stroke-dashoffset 0.8s cubic-bezier(0.4, 0, 0.2, 1) 0.2s;
+  transform: rotate(-90deg);
+  transform-origin: 50% 50%;
+}
+.tg-modal__ring-score {
+  font-size: 18px;
+  font-weight: 800;
+  text-anchor: middle;
+  dominant-baseline: central;
+  fill: #111827;
+}
+.tg-dark .tg-modal__ring-score {
+  fill: #f3f4f6;
+}
+
+.tg-modal__meta {
+  flex: 1;
+  min-width: 0;
+}
+.tg-modal__handle {
+  font-size: 15px;
+  font-weight: 700;
+  color: #111827;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.tg-dark .tg-modal__handle {
+  color: #f3f4f6;
+}
+.tg-modal__platform {
+  font-size: 11px;
+  font-weight: 500;
+  color: #6b7280;
+  text-transform: capitalize;
+  margin-top: 2px;
+}
+.tg-modal__tier-pill {
+  display: inline-block;
+  margin-top: 6px;
+  padding: 2px 10px;
+  border-radius: 100px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+/* ── Divider ─────────────────────────────────────────────────── */
+
+.tg-modal__divider {
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(0, 0, 0, 0.06), transparent);
+  margin: 0 20px;
+}
+.tg-dark .tg-modal__divider {
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.06), transparent);
+}
+
+/* ── Sub-score bars ──────────────────────────────────────────── */
+
+.tg-modal__scores {
+  padding: 16px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.tg-score-row {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.tg-score-row__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+}
+.tg-score-row__label {
+  font-size: 11px;
+  font-weight: 600;
+  color: #4b5563;
+  letter-spacing: 0.01em;
+}
+.tg-dark .tg-score-row__label {
+  color: #9ca3af;
+}
+.tg-score-row__value {
+  font-size: 11px;
+  font-weight: 700;
+  color: #111827;
+}
+.tg-dark .tg-score-row__value {
+  color: #e5e7eb;
+}
+.tg-score-row__track {
+  height: 4px;
+  border-radius: 100px;
+  background: #f3f4f6;
+  overflow: hidden;
+}
+.tg-dark .tg-score-row__track {
+  background: #1f2937;
+}
+.tg-score-row__fill {
+  height: 100%;
+  border-radius: 100px;
+  width: 0%;
+  transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1) 0.3s;
+}
+
+/* Animate bars when modal becomes visible */
+.tg-root:hover .tg-score-row__fill {
+  /* width is set inline via JS */
+}
+
+/* ── Confidence row ──────────────────────────────────────────── */
+
+.tg-modal__confidence {
+  padding: 0 20px 4px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.tg-modal__confidence-label {
+  font-size: 10px;
+  font-weight: 600;
+  color: #9ca3af;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.tg-modal__confidence-dots {
+  display: flex;
+  gap: 3px;
+}
+.tg-modal__confidence-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #e5e7eb;
+  transition: background 0.3s ease;
+}
+.tg-dark .tg-modal__confidence-dot {
+  background: #374151;
+}
+.tg-modal__confidence-dot--active {
+  background: #6366f1;
+}
+.tg-dark .tg-modal__confidence-dot--active {
+  background: #818cf8;
+}
+.tg-modal__confidence-value {
+  font-size: 10px;
+  font-weight: 600;
+  color: #6b7280;
+  margin-left: auto;
+}
+
+/* ── Footer / CTA ────────────────────────────────────────────── */
+
+.tg-modal__footer {
+  padding: 12px 20px 16px;
+}
+
+.tg-modal__cta {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  width: 100%;
+  padding: 10px 16px;
+  border: none;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #6366f1, #8b5cf6);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: opacity 0.15s ease, transform 0.1s ease;
+  text-decoration: none;
+  text-align: center;
+  letter-spacing: 0.01em;
+}
+.tg-modal__cta:hover {
+  opacity: 0.9;
+  transform: translateY(-0.5px);
+}
+.tg-modal__cta:active {
+  transform: translateY(0.5px);
+}
+.tg-modal__cta-arrow {
+  font-size: 14px;
+  transition: transform 0.15s ease;
+}
+.tg-modal__cta:hover .tg-modal__cta-arrow {
+  transform: translateX(2px);
+}
+
+/* ── Error state ─────────────────────────────────────────────── */
+
+.tg-modal__error {
+  padding: 24px 20px;
+  text-align: center;
+  color: #9ca3af;
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+/* ── Tier colors ─────────────────────────────────────────────── */
+
+.tg-tier--excellent { color: #10b981; }
+.tg-tier--good      { color: #22c55e; }
+.tg-tier--fair       { color: #f59e0b; }
+.tg-tier--poor       { color: #ef4444; }
+.tg-tier--untrusted  { color: #6b7280; }
+
+.tg-tier-bg--excellent { background: rgba(16, 185, 129, 0.1); color: #10b981; }
+.tg-tier-bg--good      { background: rgba(34, 197, 94, 0.1);  color: #22c55e; }
+.tg-tier-bg--fair       { background: rgba(245, 158, 11, 0.1); color: #f59e0b; }
+.tg-tier-bg--poor       { background: rgba(239, 68, 68, 0.1);  color: #ef4444; }
+.tg-tier-bg--untrusted  { background: rgba(107, 114, 128, 0.1); color: #6b7280; }
+
+.tg-dark .tg-tier-bg--excellent { background: rgba(16, 185, 129, 0.15); }
+.tg-dark .tg-tier-bg--good      { background: rgba(34, 197, 94, 0.15); }
+.tg-dark .tg-tier-bg--fair       { background: rgba(245, 158, 11, 0.15); }
+.tg-dark .tg-tier-bg--poor       { background: rgba(239, 68, 68, 0.15); }
+.tg-dark .tg-tier-bg--untrusted  { background: rgba(107, 114, 128, 0.15); }
+
+/* ── Bar fill colors by tier ─────────────────────────────────── */
+
+.tg-fill--excellent { background: linear-gradient(90deg, #10b981, #34d399); }
+.tg-fill--good      { background: linear-gradient(90deg, #22c55e, #4ade80); }
+.tg-fill--fair       { background: linear-gradient(90deg, #f59e0b, #fbbf24); }
+.tg-fill--poor       { background: linear-gradient(90deg, #ef4444, #f87171); }
+.tg-fill--untrusted  { background: linear-gradient(90deg, #6b7280, #9ca3af); }
+
+/* ── Utility ─────────────────────────────────────────────────── */
+
+/* ══════════════════════════════════════════════════════════════════
+   SITE BADGE — compact score indicator placed near site logo
+   ══════════════════════════════════════════════════════════════════ */
+
+.tg-site-badge {
+  position: absolute;
+  z-index: 999999;
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  transition: transform 0.15s ease;
+}
+.tg-site-badge:hover {
+  transform: scale(1.08);
+}
+
+/* Position variants relative to logo */
+.tg-site-badge--right {
+  top: -4px;
+  right: -14px;
+}
+.tg-site-badge--left {
+  top: -4px;
+  left: -14px;
+}
+.tg-site-badge--fixed {
+  position: fixed;
+  top: 12px;
+  left: 12px;
+  z-index: 2147483647;
+}
+
+/* The ring container */
+.tg-site-badge__ring {
+  width: 28px;
+  height: 28px;
+  position: relative;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.95);
+  box-shadow:
+    0 1px 4px rgba(0, 0, 0, 0.1),
+    0 0 0 1px rgba(0, 0, 0, 0.04);
+  padding: 2px;
+  transition: box-shadow 0.2s ease;
+}
+.tg-site-badge:hover .tg-site-badge__ring {
+  box-shadow:
+    0 2px 8px rgba(0, 0, 0, 0.15),
+    0 0 0 1px rgba(0, 0, 0, 0.06);
+}
+.tg-dark .tg-site-badge__ring {
+  background: rgba(24, 27, 38, 0.95);
+  box-shadow:
+    0 1px 4px rgba(0, 0, 0, 0.3),
+    0 0 0 1px rgba(255, 255, 255, 0.06);
+}
+.tg-site-badge__ring svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+/* Reuse badge ring styles for the smaller site badge SVG */
+.tg-site-badge .tg-badge__ring-track {
+  stroke-width: 2.5;
+}
+.tg-site-badge .tg-badge__ring-fill {
+  stroke-width: 2.5;
+}
+.tg-site-badge .tg-badge__ring-score {
+  font-size: 9px;
+  font-weight: 800;
+}
+
+/* Site badge spinner */
+.tg-site-spinner {
+  width: 10px;
+  height: 10px;
+  border: 1.5px solid #e5e7eb;
+  border-top-color: #6366f1;
+  border-radius: 50%;
+  animation: tg-spin 0.6s linear infinite;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+}
+.tg-dark .tg-site-spinner {
+  border-color: #374151;
+  border-top-color: #818cf8;
+}
+
+/* Tooltip on hover */
+.tg-site-badge__tooltip {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 50%;
+  transform: translateX(-50%);
+  white-space: nowrap;
+  padding: 8px 12px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.96);
+  backdrop-filter: blur(16px) saturate(180%);
+  -webkit-backdrop-filter: blur(16px) saturate(180%);
+  box-shadow:
+    0 2px 12px rgba(0, 0, 0, 0.1),
+    0 0 0 1px rgba(0, 0, 0, 0.04);
+  font-size: 11px;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition: opacity 0.15s ease, visibility 0.15s ease, transform 0.15s ease;
+  transform: translateX(-50%) translateY(-2px);
+}
+.tg-dark .tg-site-badge__tooltip {
+  background: rgba(17, 20, 30, 0.96);
+  box-shadow:
+    0 2px 12px rgba(0, 0, 0, 0.4),
+    0 0 0 1px rgba(255, 255, 255, 0.06);
+  color: #e5e7eb;
+}
+.tg-site-badge:hover .tg-site-badge__tooltip {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+  transform: translateX(-50%) translateY(0);
+}
+
+.tg-site-badge__tooltip-score {
+  font-size: 13px;
+  font-weight: 700;
+  color: #111827;
+  line-height: 1.2;
+}
+.tg-dark .tg-site-badge__tooltip-score {
+  color: #f3f4f6;
+}
+.tg-site-badge__tooltip-name {
+  font-size: 10px;
+  color: #6b7280;
+  margin-top: 2px;
+}
+.tg-site-badge__tooltip-brand {
+  font-size: 8px;
+  color: #9ca3af;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-top: 3px;
+}
+
+/* ── Utility ─────────────────────────────────────────────────── */
+
+.tg-hidden {
+  display: none !important;
+}

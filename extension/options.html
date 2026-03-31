@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      width: 340px;
+      font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: #0f1117;
+      color: #e5e7eb;
+      padding: 20px;
+      -webkit-font-smoothing: antialiased;
+    }
+    h2 {
+      font-size: 15px;
+      font-weight: 700;
+      color: #f3f4f6;
+      margin-bottom: 16px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .tg-logo {
+      width: 24px; height: 24px; border-radius: 6px;
+      background: linear-gradient(135deg, #6366f1, #8b5cf6);
+      display: inline-flex; align-items: center; justify-content: center;
+      color: #fff; font-weight: 800; font-size: 12px;
+    }
+    label {
+      display: block;
+      font-size: 11px;
+      font-weight: 600;
+      color: #9ca3af;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      margin-bottom: 6px;
+    }
+    .field { margin-bottom: 16px; }
+    .radio-group { display: flex; flex-direction: column; gap: 6px; }
+    .radio-option {
+      display: flex; align-items: center; gap: 8px;
+      padding: 10px 12px;
+      border-radius: 8px;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.06);
+      cursor: pointer;
+      transition: border-color 0.15s;
+    }
+    .radio-option:hover { border-color: rgba(255,255,255,0.12); }
+    .radio-option.active { border-color: #6366f1; background: rgba(99,102,241,0.08); }
+    .radio-option input[type="radio"] { accent-color: #6366f1; }
+    .radio-option .opt-label { font-size: 13px; font-weight: 600; color: #e5e7eb; }
+    .radio-option .opt-url { font-size: 10px; color: #6b7280; font-family: monospace; }
+    input[type="text"] {
+      width: 100%;
+      padding: 10px 12px;
+      border-radius: 8px;
+      border: 1px solid rgba(255,255,255,0.1);
+      background: rgba(255,255,255,0.04);
+      color: #e5e7eb;
+      font-size: 12px;
+      font-family: monospace;
+      outline: none;
+      transition: border-color 0.15s;
+    }
+    input[type="text"]:focus { border-color: #6366f1; }
+    input[type="text"]:disabled { opacity: 0.4; cursor: not-allowed; }
+    .hint { font-size: 10px; color: #6b7280; margin-top: 4px; }
+    .saved {
+      font-size: 11px; font-weight: 600; color: #10b981;
+      opacity: 0; transition: opacity 0.2s; margin-top: 12px; text-align: center;
+    }
+    .saved.show { opacity: 1; }
+    button {
+      width: 100%; padding: 10px; border: none; border-radius: 8px;
+      background: linear-gradient(135deg, #6366f1, #8b5cf6);
+      color: #fff; font-size: 12px; font-weight: 700; cursor: pointer;
+      transition: opacity 0.15s; margin-top: 12px;
+    }
+    button:hover { opacity: 0.85; }
+  </style>
+</head>
+<body>
+  <h2><span class="tg-logo">T</span> Tovbase Settings</h2>
+
+  <div class="field">
+    <label>Scoring API Server</label>
+    <div class="radio-group" id="server-group">
+      <div class="radio-option" data-value="dev">
+        <input type="radio" name="server" value="dev" id="srv-dev">
+        <div>
+          <div class="opt-label">Development</div>
+          <div class="opt-url">http://localhost:8001/v1</div>
+        </div>
+      </div>
+      <div class="radio-option" data-value="production">
+        <input type="radio" name="server" value="production" id="srv-prod">
+        <div>
+          <div class="opt-label">Production</div>
+          <div class="opt-url">https://api.tovbase.com/v1</div>
+        </div>
+      </div>
+      <div class="radio-option" data-value="custom">
+        <input type="radio" name="server" value="custom" id="srv-custom">
+        <div>
+          <div class="opt-label">Custom</div>
+          <div class="opt-url">Enter your own API base URL</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="field" id="custom-field" style="display:none">
+    <label>Custom API Base URL</label>
+    <input type="text" id="custom-url" placeholder="https://my-staging.example.com/v1">
+    <div class="hint">Must include /v1 path prefix. No trailing slash.</div>
+  </div>
+
+  <button id="save-btn">Save Settings</button>
+  <div class="saved" id="saved-msg">Settings saved</div>
+
+  <script src="options.js"></script>
+</body>
+</html>

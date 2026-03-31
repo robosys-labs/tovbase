@@ -1,0 +1,15 @@
+@import "tailwindcss";
+
+@theme {
+  --color-trust-excellent: #0F6E56;
+  --color-trust-good: #0F6E56;
+  --color-trust-fair: #BA7517;
+  --color-trust-poor: #DC2626;
+  --color-trust-untrusted: #DC2626;
+}
+
+body {
+  font-family: var(--font-inter), system-ui, -apple-system, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}

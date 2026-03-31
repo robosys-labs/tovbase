@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=300">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      width: 320px;
+      font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background: #0f1117;
+      color: #e5e7eb;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* Header */
+    .tg-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 16px 18px 14px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    }
+    .tg-logo {
+      width: 28px;
+      height: 28px;
+      border-radius: 8px;
+      background: linear-gradient(135deg, #6366f1, #8b5cf6);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #fff;
+      font-weight: 800;
+      font-size: 14px;
+      flex-shrink: 0;
+    }
+    .tg-header__text { flex: 1; }
+    .tg-header__title {
+      font-size: 14px;
+      font-weight: 700;
+      color: #f3f4f6;
+    }
+    .tg-header__sub {
+      font-size: 10px;
+      color: #6b7280;
+      font-weight: 500;
+    }
+
+    /* Score card */
+    .tg-card {
+      margin: 14px 18px;
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      border-radius: 14px;
+      padding: 20px;
+    }
+    .tg-card__top {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      margin-bottom: 16px;
+    }
+    .tg-card__ring {
+      width: 56px;
+      height: 56px;
+      flex-shrink: 0;
+    }
+    .tg-card__ring svg { display: block; width: 100%; height: 100%; }
+    .tg-card__ring-track { fill: none; stroke: #1f2937; stroke-width: 4; }
+    .tg-card__ring-fill {
+      fill: none;
+      stroke-width: 4;
+      stroke-linecap: round;
+      transform: rotate(-90deg);
+      transform-origin: 50% 50%;
+      transition: stroke-dashoffset 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .tg-card__ring-score {
+      font-size: 16px;
+      font-weight: 800;
+      text-anchor: middle;
+      dominant-baseline: central;
+      fill: #f3f4f6;
+    }
+    .tg-card__meta { flex: 1; min-width: 0; }
+    .tg-card__handle {
+      font-size: 14px;
+      font-weight: 700;
+      color: #f3f4f6;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .tg-card__platform {
+      font-size: 10px;
+      color: #6b7280;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-top: 2px;
+    }
+    .tg-card__tier {
+      display: inline-block;
+      margin-top: 6px;
+      padding: 2px 10px;
+      border-radius: 100px;
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.02em;
+    }
+
+    /* Breakdown bars */
+    .tg-bars { margin-top: 16px; display: flex; flex-direction: column; gap: 8px; }
+    .tg-bar-row { display: flex; flex-direction: column; gap: 3px; }
+    .tg-bar-header { display: flex; justify-content: space-between; align-items: baseline; }
+    .tg-bar-label { font-size: 10px; font-weight: 600; color: #9ca3af; }
+    .tg-bar-value { font-size: 10px; font-weight: 700; color: #d1d5db; }
+    .tg-bar-track {
+      height: 3px;
+      border-radius: 100px;
+      background: #1f2937;
+      overflow: hidden;
+    }
+    .tg-bar-fill {
+      height: 100%;
+      border-radius: 100px;
+      transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    /* Confidence */
+    .tg-conf {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin-top: 12px;
+      padding-top: 12px;
+      border-top: 1px solid rgba(255, 255, 255, 0.06);
+    }
+    .tg-conf__label {
+      font-size: 9px;
+      font-weight: 600;
+      color: #6b7280;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+    .tg-conf__dots { display: flex; gap: 3px; }
+    .tg-conf__dot {
+      width: 5px;
+      height: 5px;
+      border-radius: 50%;
+      background: #374151;
+    }
+    .tg-conf__dot--on { background: #818cf8; }
+    .tg-conf__pct {
+      font-size: 9px;
+      font-weight: 600;
+      color: #6b7280;
+      margin-left: auto;
+    }
+
+    /* Empty / loading */
+    .tg-empty {
+      text-align: center;
+      padding: 32px 18px;
+      color: #6b7280;
+      font-size: 12px;
+      line-height: 1.7;
+    }
+    .tg-loading {
+      text-align: center;
+      padding: 32px 18px;
+      color: #6b7280;
+      font-size: 12px;
+    }
+    .tg-loading__spinner {
+      display: inline-block;
+      width: 18px;
+      height: 18px;
+      border: 2px solid #374151;
+      border-top-color: #6366f1;
+      border-radius: 50%;
+      animation: tg-spin 0.6s linear infinite;
+      margin-bottom: 8px;
+    }
+    @keyframes tg-spin { to { transform: rotate(360deg); } }
+
+    /* Actions */
+    .tg-actions {
+      padding: 0 18px 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .tg-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      width: 100%;
+      padding: 10px;
+      border: none;
+      border-radius: 10px;
+      font-size: 12px;
+      font-weight: 700;
+      cursor: pointer;
+      text-decoration: none;
+      text-align: center;
+      transition: opacity 0.15s;
+    }
+    .tg-btn:hover { opacity: 0.85; }
+    .tg-btn--primary {
+      background: linear-gradient(135deg, #6366f1, #8b5cf6);
+      color: #fff;
+    }
+    .tg-btn--secondary {
+      background: rgba(255, 255, 255, 0.06);
+      color: #d1d5db;
+    }
+    .tg-btn:disabled { opacity: 0.3; cursor: default; }
+
+    /* Footer */
+    .tg-footer {
+      padding: 10px 18px 14px;
+      text-align: center;
+      font-size: 9px;
+      color: #4b5563;
+      border-top: 1px solid rgba(255, 255, 255, 0.04);
+    }
+    .tg-footer a {
+      color: #818cf8;
+      text-decoration: none;
+      font-weight: 600;
+    }
+
+    /* Tier colors */
+    .tier-excellent { background: rgba(16, 185, 129, 0.12); color: #10b981; }
+    .tier-good      { background: rgba(34, 197, 94, 0.12);  color: #22c55e; }
+    .tier-fair       { background: rgba(245, 158, 11, 0.12); color: #f59e0b; }
+    .tier-poor       { background: rgba(239, 68, 68, 0.12);  color: #ef4444; }
+    .tier-untrusted  { background: rgba(107, 114, 128, 0.12); color: #6b7280; }
+
+    .fill-excellent { background: linear-gradient(90deg, #10b981, #34d399); }
+    .fill-good      { background: linear-gradient(90deg, #22c55e, #4ade80); }
+    .fill-fair       { background: linear-gradient(90deg, #f59e0b, #fbbf24); }
+    .fill-poor       { background: linear-gradient(90deg, #ef4444, #f87171); }
+    .fill-untrusted  { background: linear-gradient(90deg, #6b7280, #9ca3af); }
+  </style>
+</head>
+<body>
+
+  <div class="tg-header">
+    <div class="tg-logo">T</div>
+    <div class="tg-header__text">
+      <div class="tg-header__title">Tovbase</div>
+      <div class="tg-header__sub">Trust Score Everywhere</div>
+    </div>
+  </div>
+
+  <div id="tg-content">
+    <div class="tg-loading">
+      <div class="tg-loading__spinner"></div>
+      <div>Checking page...</div>
+    </div>
+  </div>
+
+  <div class="tg-actions" id="tg-actions" style="display:none">
+    <button class="tg-btn tg-btn--primary" id="tg-report-btn" disabled>
+      View Full Report <span style="font-size:14px">&rarr;</span>
+    </button>
+    <a class="tg-btn tg-btn--secondary" href="https://tovbase.com" target="_blank">Find a score</a>
+  </div>
+
+  <div class="tg-footer">
+    Powered by <a href="https://tovbase.com" target="_blank">tovbase.com</a>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>
