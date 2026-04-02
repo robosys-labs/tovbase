@@ -30,12 +30,20 @@ export default function RootLayout({
             >
               Tovbase
             </Link>
-            <a
-              href="#extension"
-              className="text-sm font-medium text-gray-600 hover:text-gray-900 border border-gray-200 rounded-lg px-3 py-1.5 transition-colors"
-            >
-              Install Extension
-            </a>
+            <nav className="flex items-center gap-4">
+              <Link
+                href="/topics"
+                className="text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors"
+              >
+                Topics
+              </Link>
+              <a
+                href="#extension"
+                className="text-sm font-medium text-gray-600 hover:text-gray-900 border border-gray-200 rounded-lg px-3 py-1.5 transition-colors"
+              >
+                Install Extension
+              </a>
+            </nav>
           </div>
         </header>
         <main className="flex-1">{children}</main>
