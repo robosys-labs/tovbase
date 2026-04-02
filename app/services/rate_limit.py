@@ -113,7 +113,6 @@ class RedisRateLimiter:
 
         if current_count >= max_requests:
             # Over limit — remove the entry we just added
-            # (we added optimistically in the pipeline)
             try:
                 self.client.zremrangebyscore(key, now, now + 0.001)
             except (redis.ConnectionError, redis.TimeoutError, OSError):

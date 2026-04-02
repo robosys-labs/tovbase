@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
 
 import pytest
 import redis
@@ -17,7 +17,6 @@ from app.services.rate_limit import RedisRateLimiter
 def _make_limiter_memory_only() -> RedisRateLimiter:
     """Create a limiter that always falls back to in-memory."""
     limiter = RedisRateLimiter(redis_url="redis://nonexistent:9999/0")
-    # Force the Redis client to raise on any operation
     mock_client = MagicMock()
     mock_client.pipeline.side_effect = redis.ConnectionError("test: redis unavailable")
     limiter._client = mock_client
@@ -28,8 +27,6 @@ def _make_limiter_redis_mock() -> tuple[RedisRateLimiter, MagicMock]:
     """Create a limiter with a mocked Redis that simulates sorted set ops."""
     limiter = RedisRateLimiter()
     mock_client = MagicMock()
-
-    # Track call count per key for ZCARD simulation
     _counts: dict[str, int] = {}
 
     def _pipeline_factory(transaction=True):
@@ -52,7 +49,6 @@ def _make_limiter_redis_mock() -> tuple[RedisRateLimiter, MagicMock]:
         def _execute():
             key = _pipe_key[0]
             count = _pipe_count[0]
-            # Increment count after execute (simulates ZADD)
             _counts[key] = count + 1
             return [None, count, None, None]
 
@@ -130,7 +126,7 @@ class TestEndpointLimits:
 
 
 # ---------------------------------------------------------------------------
-# Tests: Rate limiting triggers after threshold (in-memory fallback)
+# Tests: In-memory fallback limiting
 # ---------------------------------------------------------------------------
 
 class TestInMemoryLimiting:
@@ -149,20 +145,17 @@ class TestInMemoryLimiting:
             allowed, _ = limiter.check(ip, path)
             assert allowed is True, f"Request {i+1} should be allowed"
 
-        # 11th request should be blocked
         allowed, retry_after = limiter.check(ip, path)
         assert allowed is False
         assert retry_after == 60
 
     def test_different_ips_independent(self):
         limiter = _make_limiter_memory_only()
-        path = "/v1/report/generate"  # 10 req/min
+        path = "/v1/report/generate"
 
-        # Exhaust limit for IP A
         for _ in range(10):
             limiter.check("1.1.1.1", path)
 
-        # IP B should still be allowed
         allowed, _ = limiter.check("2.2.2.2", path)
         assert allowed is True
 
@@ -170,11 +163,9 @@ class TestInMemoryLimiting:
         limiter = _make_limiter_memory_only()
         ip = "1.2.3.4"
 
-        # Exhaust report limit (10 req)
         for _ in range(10):
             limiter.check(ip, "/v1/report/generate")
 
-        # Score endpoint should still be allowed (different key prefix)
         allowed, _ = limiter.check(ip, "/v1/score/twitter/alice")
         assert allowed is True
 
@@ -198,20 +189,18 @@ class TestRedisLimiting:
             allowed, _ = limiter.check(ip, path)
             assert allowed is True, f"Request {i+1} should be allowed"
 
-        # 11th should be blocked
         allowed, retry_after = limiter.check(ip, path)
         assert allowed is False
         assert retry_after == 60
 
 
 # ---------------------------------------------------------------------------
-# Tests: Fallback to in-memory when Redis unavailable
+# Tests: Fallback behavior
 # ---------------------------------------------------------------------------
 
 class TestFallback:
     def test_falls_back_on_connection_error(self):
         limiter = _make_limiter_memory_only()
-        # Should still work via in-memory
         allowed, _ = limiter.check("1.2.3.4", "/v1/score/twitter/alice")
         assert allowed is True
         assert limiter._redis_available is False
@@ -219,7 +208,7 @@ class TestFallback:
     def test_fallback_still_enforces_limits(self):
         limiter = _make_limiter_memory_only()
         ip = "1.2.3.4"
-        path = "/v1/report/generate"  # 10 req/min
+        path = "/v1/report/generate"
 
         for _ in range(10):
             limiter.check(ip, path)
@@ -236,7 +225,7 @@ class TestRetryAfter:
     def test_retry_after_matches_window(self):
         limiter = _make_limiter_memory_only()
         ip = "1.2.3.4"
-        path = "/v1/report/generate"  # window = 60s
+        path = "/v1/report/generate"
 
         for _ in range(10):
             limiter.check(ip, path)
@@ -247,7 +236,7 @@ class TestRetryAfter:
     def test_retry_after_default_endpoint(self):
         limiter = _make_limiter_memory_only()
         ip = "1.2.3.4"
-        path = "/v1/identity/someone"  # default: 60 req, window=60s
+        path = "/v1/identity/someone"
 
         for _ in range(60):
             limiter.check(ip, path)

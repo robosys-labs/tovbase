@@ -1,21 +1,23 @@
-import time
-from collections import defaultdict
-
 from fastapi import FastAPI, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 from starlette.middleware.base import BaseHTTPMiddleware
 
 from app.api.routes import router
+from app.config import settings
 from app.db import Base, engine
+from app.services.rate_limit import RedisRateLimiter
 from app.services.vector import VectorService
 
 
 # ---------------------------------------------------------------------------
-# Rate limiting middleware (in-memory, per-IP)
+# Rate limiting middleware (Redis-backed with in-memory fallback)
 # ---------------------------------------------------------------------------
 
 class RateLimitMiddleware(BaseHTTPMiddleware):
-    """Simple sliding-window rate limiter per client IP.
+    """Sliding-window rate limiter per client IP.
+
+    Backed by Redis sorted sets for distributed state across workers.
+    Falls back to in-memory when Redis is unavailable.
 
     Limits:
       /v1/score/         — 120 req/min (extension hot path)
@@ -26,56 +28,27 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
       everything else    — 60 req/min
     """
 
-    LIMITS: dict[str, tuple[int, int]] = {
-        "/v1/score/":   (120, 60),
-        "/v1/report/":  (10, 60),
-        "/v1/ingest/":  (30, 60),
-        "/v1/enrich/":  (10, 60),
-    }
-    DEFAULT_LIMIT = (60, 60)  # 60 req per 60 seconds
-
     def __init__(self, app):
         super().__init__(app)
-        self._hits: dict[str, list[float]] = defaultdict(list)
+        self._limiter = RedisRateLimiter()
 
     async def dispatch(self, request: Request, call_next):
         path = request.url.path
-
-        # Admin endpoints are exempt
-        if "/admin/" in path:
-            return await call_next(request)
-
-        # Health endpoint is exempt
-        if path.endswith("/health"):
-            return await call_next(request)
-
-        # Localhost/loopback is exempt (Next.js SSR server-to-server calls)
         ip = request.client.host if request.client else "unknown"
-        if ip in ("127.0.0.1", "::1", "localhost"):
+
+        if self._limiter.is_exempt(path, ip):
             return await call_next(request)
 
-        # Find matching limit
-        max_requests, window = self.DEFAULT_LIMIT
-        for prefix, (limit, win) in self.LIMITS.items():
-            if path.startswith(prefix):
-                max_requests, window = limit, win
-                break
+        allowed, retry_after = self._limiter.check(ip, path)
 
-        key = f"{ip}:{path.split('/')[2] if len(path.split('/')) > 2 else 'other'}"
-        now = time.time()
-
-        # Clean old entries
-        self._hits[key] = [t for t in self._hits[key] if now - t < window]
-
-        if len(self._hits[key]) >= max_requests:
+        if not allowed:
             return Response(
                 content='{"detail":"Rate limit exceeded. Try again later."}',
                 status_code=429,
                 media_type="application/json",
-                headers={"Retry-After": str(window)},
+                headers={"Retry-After": str(retry_after)},
             )
 
-        self._hits[key].append(now)
         return await call_next(request)
 
 
@@ -89,8 +62,8 @@ app.add_middleware(RateLimitMiddleware)
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3002", "http://localhost:3000"],
-    allow_origin_regex=r"^chrome-extension://.*$",
+    allow_origins=[o.strip() for o in settings.cors_origins.split(",") if o.strip()],
+    allow_origin_regex=settings.cors_origin_regex,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
