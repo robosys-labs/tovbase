@@ -1,0 +1,44 @@
+# Frontend & extension (separate deployments)
+web/
+extension/
+
+# Tests & dev tooling
+tests/
+.ruff_cache/
+.mypy_cache/
+.pytest_cache/
+
+# Version control
+.git/
+.gitignore
+
+# Environment & secrets
+.env
+.env.*
+!.env.example
+!.env.production.example
+
+# Python artifacts
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+dist/
+build/
+.venv/
+
+# Node / misc
+node_modules/
+.next/
+*.md
+.claude/
+docker-compose*.yml
+Dockerfile
+.dockerignore
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Browser profiles (local scraper sessions)
+data/
