@@ -80,5 +80,8 @@ jobs:
       - name: Build
         run: cd web && pnpm build
 
+      - name: Type check
+        run: cd web && npx tsc --noEmit
+
       - name: Run tests
-        run: cd web && pnpm test:run || true
+        run: cd web && pnpm test:run
