@@ -438,3 +438,39 @@ class EnrichResponse(BaseModel):
     platforms_found: list[str] = Field(default_factory=list)
     profiles_ingested: int = 0
     profiles_linked: int = 0
+
+
+# ---------------------------------------------------------------------------
+# Profile claiming
+# ---------------------------------------------------------------------------
+
+
+class ClaimRequest(BaseModel):
+    """Initiate a profile ownership claim."""
+
+    handle: str
+    platform: str
+    verification_method: str = Field(
+        ...,
+        description="One of: platform_bio, dns_txt, oauth_token",
+    )
+
+
+class ClaimResponse(BaseModel):
+    claim_id: str
+    challenge: str
+    verification_method: str
+    expires_at: str
+
+
+class VerifyRequest(BaseModel):
+    """Submit proof for a pending claim."""
+
+    claim_id: str
+    proof: str
+
+
+class VerifyResponse(BaseModel):
+    verified: bool
+    canonical_id: str | None = None
+    message: str
