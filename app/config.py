@@ -42,6 +42,10 @@ class Settings(BaseSettings):
     # Behavioral vector
     vector_dimensions: int = 32
 
+    # CORS
+    cors_origins: str = "http://localhost:3002,http://localhost:3000"  # Comma-separated allowed origins
+    cors_origin_regex: str = r"^chrome-extension://.*$"  # Regex for extension origins
+
     # Admin
     admin_api_key: str = "changeme"  # Set via ADMIN_API_KEY env var
     browser_profile_dir: str = "data/browser_profiles"
