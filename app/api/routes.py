@@ -3,7 +3,8 @@
 from __future__ import annotations
 
 import logging
-from datetime import datetime
+import uuid as _uuid
+from datetime import datetime, timedelta, timezone
 
 logger = logging.getLogger("tovbase")
 
@@ -12,11 +13,13 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.db import get_db
-from app.models import CanonicalIdentity, CompanyProfile, FeedSource, IdentityLink, IdentityProfile, TopicEntry
+from app.models import CanonicalIdentity, CompanyProfile, FeedSource, IdentityLink, IdentityProfile, PendingClaim, TopicEntry
 from app.schemas import (
     ActivityEntry,
     AuthActionResponse,
     AuthStatusResponse,
+    ClaimRequest,
+    ClaimResponse,
     CompanyObservationRequest,
     CompanyObservationResponse,
     CompanyScoreResponse,
@@ -44,6 +47,8 @@ from app.schemas import (
     TopicEntryResponse,
     TopicSearchRequest,
     TopicSearchResponse,
+    VerifyRequest,
+    VerifyResponse,
 )
 from app.services.cache import CacheService
 from app.services.company_scoring import CompanyScoreBreakdown, compute_company_score
@@ -2105,3 +2110,150 @@ def admin_auth_validate(platform: str):
 
     pool = get_scraper_pool()
     return _run_async(pool.validate_session(platform))
+
+
+# ---------------------------------------------------------------------------
+# POST /v1/profile/claim — initiate profile ownership claim
+# ---------------------------------------------------------------------------
+
+_VALID_VERIFICATION_METHODS = {"platform_bio", "dns_txt", "oauth_token"}
+
+
+@router.post("/profile/claim", response_model=ClaimResponse)
+def create_claim(req: ClaimRequest, db: Session = Depends(get_db)):
+    """Initiate a profile ownership claim.
+
+    Generates a unique challenge string that the user must place in their
+    platform bio (or prove via DNS/OAuth) within 1 hour.
+    """
+    if req.verification_method not in _VALID_VERIFICATION_METHODS:
+        raise HTTPException(
+            status_code=422,
+            detail=f"Invalid verification_method. Must be one of: {', '.join(sorted(_VALID_VERIFICATION_METHODS))}",
+        )
+
+    # Look up the profile
+    profile = db.execute(
+        select(IdentityProfile).where(
+            IdentityProfile.handle == req.handle,
+            IdentityProfile.platform == req.platform,
+        )
+    ).scalar_one_or_none()
+
+    if not profile:
+        raise HTTPException(status_code=404, detail=f"No profile found for {req.handle} on {req.platform}")
+
+    if profile.is_claimed:
+        raise HTTPException(status_code=409, detail="This profile has already been claimed")
+
+    # Generate challenge
+    challenge_hex = _uuid.uuid4().hex[:12]
+    challenge = f"trustgate-verify-{challenge_hex}"
+
+    now = datetime.now(timezone.utc)
+    expires_at = now + timedelta(hours=1)
+
+    claim = PendingClaim(
+        handle=req.handle,
+        platform=req.platform,
+        canonical_identity_id=profile.canonical_identity_id,
+        challenge=challenge,
+        verification_method=req.verification_method,
+        expires_at=expires_at,
+        created_at=now,
+        status="pending",
+    )
+    db.add(claim)
+    db.commit()
+    db.refresh(claim)
+
+    return ClaimResponse(
+        claim_id=str(claim.id),
+        challenge=challenge,
+        verification_method=req.verification_method,
+        expires_at=expires_at.isoformat(),
+    )
+
+
+# ---------------------------------------------------------------------------
+# POST /v1/profile/verify — verify a pending claim
+# ---------------------------------------------------------------------------
+
+
+@router.post("/profile/verify", response_model=VerifyResponse)
+def verify_claim(req: VerifyRequest, db: Session = Depends(get_db)):
+    """Verify a pending profile claim by submitting proof.
+
+    For v1, proof must match the challenge string exactly (platform_bio method:
+    the challenge string should appear in the profile's bio).
+    """
+    # Parse claim_id
+    try:
+        claim_uuid = _uuid.UUID(req.claim_id)
+    except ValueError:
+        raise HTTPException(status_code=422, detail="Invalid claim_id format")
+
+    claim = db.get(PendingClaim, claim_uuid)
+    if not claim:
+        raise HTTPException(status_code=404, detail="Claim not found")
+
+    # Check if already verified
+    if claim.status == "verified":
+        return VerifyResponse(
+            verified=True,
+            canonical_id=str(claim.canonical_identity_id) if claim.canonical_identity_id else None,
+            message="Claim was already verified",
+        )
+
+    # Check expiry
+    now = datetime.now(timezone.utc)
+    claim_expires = claim.expires_at
+    if claim_expires.tzinfo is None:
+        claim_expires = claim_expires.replace(tzinfo=timezone.utc)
+    if now > claim_expires:
+        claim.status = "expired"
+        db.commit()
+        raise HTTPException(status_code=410, detail="Claim has expired")
+
+    # Validate proof — for v1, proof must equal the challenge
+    if req.proof != claim.challenge:
+        return VerifyResponse(
+            verified=False,
+            canonical_id=None,
+            message="Proof does not match challenge",
+        )
+
+    # Proof matches — mark profile as claimed
+    claim.status = "verified"
+
+    profile = db.execute(
+        select(IdentityProfile).where(
+            IdentityProfile.handle == claim.handle,
+            IdentityProfile.platform == claim.platform,
+        )
+    ).scalar_one_or_none()
+
+    if profile:
+        profile.is_claimed = True
+
+        # Also mark canonical identity if linked
+        if profile.canonical_identity_id:
+            canonical = db.get(CanonicalIdentity, profile.canonical_identity_id)
+            if canonical:
+                canonical.claimed_by_user_id = claim.id
+
+            # Invalidate score cache for this identity
+            _cache.invalidate_score(str(profile.canonical_identity_id))
+
+        # Invalidate profile cache
+        _cache.invalidate_profile(claim.handle, claim.platform)
+
+    db.commit()
+
+    canonical_id = str(profile.canonical_identity_id) if profile and profile.canonical_identity_id else None
+
+    return VerifyResponse(
+        verified=True,
+        canonical_id=canonical_id,
+        message="Profile claimed successfully",
+    )
