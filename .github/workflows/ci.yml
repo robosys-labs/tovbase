@@ -9,6 +9,10 @@ on:
   pull_request:
     branches: [main]
 
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   backend:
     name: Backend (Python)
@@ -33,6 +37,11 @@ jobs:
 
       - name: Test
         run: pytest tests/ -v --tb=short --ignore=tests/test_enrichment.py
+        env:
+          ENV: test
+          DATABASE_URL: "sqlite:///./test.db"
+          REDIS_URL: ""
+          QDRANT_URL: ""
 
       - name: Build Docker image
         run: docker build -t tovbase-api .
