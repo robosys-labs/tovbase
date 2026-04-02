@@ -31,6 +31,8 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         "/v1/report/":  (10, 60),
         "/v1/ingest/":  (30, 60),
         "/v1/enrich/":  (10, 60),
+        "/v1/profile/claim": (30, 60),
+        "/v1/profile/verify": (30, 60),
     }
     DEFAULT_LIMIT = (60, 60)  # 60 req per 60 seconds
 
