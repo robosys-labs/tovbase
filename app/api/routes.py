@@ -661,6 +661,47 @@ def generate_report(req: ReportRequest, db: Session = Depends(get_db)):
 
 
 # ---------------------------------------------------------------------------
+# GET /v1/download/extension/{filename}
+# Serve bundled Chrome extension zips directly from the backend image.
+# Lets users install without depending on the Next.js web container.
+# ---------------------------------------------------------------------------
+
+
+_ALLOWED_EXTENSION_BUNDLES = {
+    "tovbase-extension-latest.zip",
+    "tovbase-extension-v0.4.0.zip",
+}
+
+
+@router.get("/download/extension/{filename}", response_model=None)
+def download_extension_endpoint(filename: str):
+    """Serve bundled Tovbase Chrome extension zip files.
+
+    URLs:
+      • /v1/download/extension/tovbase-extension-latest.zip
+      • /v1/download/extension/tovbase-extension-v0.4.0.zip
+    """
+    from pathlib import Path
+
+    from fastapi.responses import FileResponse
+
+    if filename not in _ALLOWED_EXTENSION_BUNDLES:
+        raise HTTPException(status_code=404, detail="unknown extension bundle")
+    file_path = Path(__file__).resolve().parents[1] / "static" / filename
+    if not file_path.exists():
+        raise HTTPException(status_code=404, detail="bundle not found on server")
+    return FileResponse(
+        path=str(file_path),
+        media_type="application/zip",
+        filename=filename,
+        headers={
+            "Cache-Control": "public, max-age=300",
+            "Content-Disposition": f'attachment; filename="{filename}"',
+        },
+    )
+
+
+# ---------------------------------------------------------------------------
 # GET /v1/health
 # ---------------------------------------------------------------------------
 
