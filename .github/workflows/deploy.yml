@@ -1,15 +1,9 @@
 name: Deploy to production
 
-# Runs on:
-#   - manual trigger (workflow_dispatch) — use this for first deploy + ad-hoc
-#   - push to main on app/, scripts/, pyproject.toml — auto-deploy on backend changes
-#
-# Required repo secrets (set via `gh secret set <NAME>`):
-#   SSH_PRIVATE_KEY     — content of venserve.pem (multi-line, paste raw text)
-#   SSH_HOST            — server IP
-#   SSH_PORT            — server SSH port
-#   SSH_USER            — server username
-#   REMOTE_DIR          — remote deployment directory
+# Runs ON the production server itself via a self-hosted runner
+# (label: tovbase). No SSH, no firewall traversal. The runner has
+# the host's docker socket and /home/venservant/tovbase mounted so
+# `docker compose -f docker-compose.prod.yml ...` works directly.
 
 on:
   workflow_dispatch:
@@ -39,8 +33,11 @@ concurrency:
 jobs:
   deploy:
     name: Build + Deploy (backend, celery-worker, celery-beat)
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, tovbase]
     timeout-minutes: 45
+
+    env:
+      REMOTE_DIR: /home/venservant/tovbase
 
     steps:
       - name: Check out code
@@ -48,132 +45,102 @@ jobs:
         with:
           fetch-depth: 1
 
-      - name: Set up SSH
-        run: |
-          mkdir -p ~/.ssh
-          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_deploy
-          chmod 600 ~/.ssh/id_deploy
-          ssh-keyscan -p ${{ secrets.SSH_PORT }} -H ${{ secrets.SSH_HOST }} >> ~/.ssh/known_hosts 2>/dev/null
-
-      - name: Build deployment archive
+      - name: Sync code into deployment dir
         run: |
           # Mirror scripts/deploy.py DEPLOY_EXCLUDES — production-owned files
           # (Dockerfile, docker-compose, nginx, migrations) stay on the server.
-          tar --exclude='.git' \
-              --exclude='node_modules' \
-              --exclude='.next' \
-              --exclude='__pycache__' \
-              --exclude='*.pyc' \
-              --exclude='*.db' \
-              --exclude='.env' \
-              --exclude='.env.production.template' \
-              --exclude='data' \
-              --exclude='.claude' \
-              --exclude='.pytest_cache' \
-              --exclude='.ruff_cache' \
-              --exclude='tovbase.egg-info' \
-              --exclude='extension' \
-              --exclude='tests' \
-              --exclude='web/node_modules' \
-              --exclude='web/.next' \
-              --exclude='*.egg-info' \
-              --exclude='.DS_Store' \
-              --exclude='*.log' \
-              --exclude='docker-compose.prod.yml' \
-              --exclude='docker-compose.yml' \
-              --exclude='nginx.conf' \
-              --exclude='migrations' \
-              --exclude='Dockerfile' \
-              --exclude='Dockerfile.worker' \
-              --exclude='deploy.tar' \
-              --exclude='deploy_changes*.tar.gz' \
-              --exclude='extension-key.pem' \
-              --exclude='extension.pem' \
-              --exclude='tovbase-extension-*.crx' \
-              --exclude='tovbase-patch.tar.gz' \
-              --exclude='tovbase-scoring-patch.tar.gz' \
-              --exclude='tovbase-web-fix.tar.gz' \
-              --exclude='update_env_oauth.py' \
-              --exclude='_patch' \
-              -czf /tmp/tovbase-deploy.tar.gz .
-          ls -lh /tmp/tovbase-deploy.tar.gz
-
-      - name: Upload + extract on server
-        run: |
-          scp -P ${{ secrets.SSH_PORT }} -i ~/.ssh/id_deploy \
-              /tmp/tovbase-deploy.tar.gz \
-              ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:/tmp/tovbase-deploy-${{ github.sha }}.tar.gz
-          ssh -p ${{ secrets.SSH_PORT }} -i ~/.ssh/id_deploy \
-              ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} \
-              "set -e; \
-               cd ${{ secrets.REMOTE_DIR }}; \
-               tar -xzf /tmp/tovbase-deploy-${{ github.sha }}.tar.gz; \
-               rm -f /tmp/tovbase-deploy-${{ github.sha }}.tar.gz; \
-               echo 'Extract complete'"
+          rsync -a --delete \
+            --exclude='.git' \
+            --exclude='node_modules' \
+            --exclude='.next' \
+            --exclude='__pycache__' \
+            --exclude='*.pyc' \
+            --exclude='*.db' \
+            --exclude='.env' \
+            --exclude='.env.production.template' \
+            --exclude='data' \
+            --exclude='.claude' \
+            --exclude='.pytest_cache' \
+            --exclude='.ruff_cache' \
+            --exclude='tovbase.egg-info' \
+            --exclude='tests' \
+            --exclude='web/node_modules' \
+            --exclude='web/.next' \
+            --exclude='*.egg-info' \
+            --exclude='.DS_Store' \
+            --exclude='*.log' \
+            --exclude='docker-compose.prod.yml' \
+            --exclude='docker-compose.yml' \
+            --exclude='nginx.conf' \
+            --exclude='migrations' \
+            --exclude='Dockerfile' \
+            --exclude='Dockerfile.worker' \
+            --exclude='deploy.tar' \
+            --exclude='deploy_changes*.tar.gz' \
+            --exclude='extension-key.pem' \
+            --exclude='extension.pem' \
+            --exclude='tovbase-extension-*.crx' \
+            --exclude='tovbase-patch.tar.gz' \
+            --exclude='tovbase-scoring-patch.tar.gz' \
+            --exclude='tovbase-web-fix.tar.gz' \
+            --exclude='update_env_oauth.py' \
+            --exclude='_patch' \
+            --exclude='app.backup.*' \
+            --exclude='app_patch_staging' \
+            ./ "$REMOTE_DIR/"
 
       - name: Build images
         run: |
-          ssh -p ${{ secrets.SSH_PORT }} -i ~/.ssh/id_deploy \
-              ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} \
-              "cd ${{ secrets.REMOTE_DIR }} && \
-               docker compose -f docker-compose.prod.yml build --pull \
-                 backend celery-worker celery-beat"
+          cd "$REMOTE_DIR"
+          docker compose -f docker-compose.prod.yml build --pull \
+            backend celery-worker celery-beat
 
       - name: Bring up data dependencies
         run: |
-          ssh -p ${{ secrets.SSH_PORT }} -i ~/.ssh/id_deploy \
-              ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} \
-              "cd ${{ secrets.REMOTE_DIR }} && \
-               docker compose -f docker-compose.prod.yml up -d postgres redis qdrant && \
-               sleep 8"
+          cd "$REMOTE_DIR"
+          docker compose -f docker-compose.prod.yml up -d postgres redis qdrant
+          sleep 8
 
       - name: Run v1.2 schema migration if present
         run: |
-          ssh -p ${{ secrets.SSH_PORT }} -i ~/.ssh/id_deploy \
-              ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} \
-              "cd ${{ secrets.REMOTE_DIR }} && \
-               if [ -f scripts/migrate_v12.py ]; then \
-                 docker compose -f docker-compose.prod.yml run --rm \
-                   --no-deps -T backend python scripts/migrate_v12.py; \
-               else echo 'No migrate_v12.py — skipping'; fi"
+          cd "$REMOTE_DIR"
+          if [ -f scripts/migrate_v12.py ]; then
+            docker compose -f docker-compose.prod.yml run --rm \
+              --no-deps -T backend python scripts/migrate_v12.py
+          else
+            echo "No migrate_v12.py — skipping"
+          fi
 
       - name: Start application containers
         run: |
-          ssh -p ${{ secrets.SSH_PORT }} -i ~/.ssh/id_deploy \
-              ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} \
-              "cd ${{ secrets.REMOTE_DIR }} && \
-               docker compose -f docker-compose.prod.yml up -d \
-                 backend celery-worker celery-beat"
+          cd "$REMOTE_DIR"
+          docker compose -f docker-compose.prod.yml up -d \
+            backend celery-worker celery-beat
 
       - name: Health check
         run: |
-          ssh -p ${{ secrets.SSH_PORT }} -i ~/.ssh/id_deploy \
-              ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} \
-              "set -e; \
-               sleep 10; \
-               docker compose -f ${{ secrets.REMOTE_DIR }}/docker-compose.prod.yml ps; \
-               for i in 1 2 3 4 5; do \
-                 STATUS=\$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:9010/v1/health); \
-                 if [ \"\$STATUS\" = \"200\" ]; then echo 'Backend healthy.'; exit 0; fi; \
-                 echo \"Attempt \$i: backend returned \$STATUS, retrying...\"; \
-                 sleep 5; \
-               done; \
-               echo 'Health check failed after 5 attempts.'; \
-               docker compose -f ${{ secrets.REMOTE_DIR }}/docker-compose.prod.yml logs --tail=50 backend; \
-               exit 1"
+          cd "$REMOTE_DIR"
+          sleep 10
+          docker compose -f docker-compose.prod.yml ps
+          for i in 1 2 3 4 5; do
+            STATUS=$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:9010/v1/health)
+            if [ "$STATUS" = "200" ]; then
+              echo "Backend healthy."
+              exit 0
+            fi
+            echo "Attempt $i: backend returned $STATUS, retrying..."
+            sleep 5
+          done
+          echo "Health check failed after 5 attempts."
+          docker compose -f docker-compose.prod.yml logs --tail=80 backend
+          exit 1
 
       - name: Rebuild + restart web (only when explicitly requested)
         if: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.skip_web == 'false' }}
         run: |
-          ssh -p ${{ secrets.SSH_PORT }} -i ~/.ssh/id_deploy \
-              ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} \
-              "cd ${{ secrets.REMOTE_DIR }} && \
-               docker compose -f docker-compose.prod.yml build --pull web && \
-               docker compose -f docker-compose.prod.yml up -d web"
-
-      - name: Cleanup local key
-        if: always()
-        run: rm -f ~/.ssh/id_deploy
+          cd "$REMOTE_DIR"
+          docker compose -f docker-compose.prod.yml build --pull web
+          docker compose -f docker-compose.prod.yml up -d web
 
       - name: Summary
         if: success()
