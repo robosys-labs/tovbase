@@ -1,0 +1,81 @@
+# Trustgate seed list — anchors for the Personalized PageRank trust graph.
+#
+# Each entry is a (handle, platform) pair pointing to a verified, public,
+# durably high-trust online identity. PPR teleports back to these nodes
+# every iteration, so trust mass concentrates near them. A bad seed pollutes
+# the entire graph; challenge any entry via PR with documented justification.
+#
+# Selection criteria (must satisfy ALL):
+#   1. Public figure with a documented track record across multiple years.
+#   2. Platform identity is verifiable (verified badge, OAuth, well-known
+#      personal site cross-link).
+#   3. No known major reputational incident.
+#   4. Diversity across professional domains — avoid over-anchoring the
+#      graph to one industry or culture.
+#
+# Governance: see GOVERNANCE.md. Changes to this file require a PR review
+# from at least two maintainers and a public 14-day comment window.
+#
+# Version: 1
+# Last updated: 2026-05-10
+
+version: 1
+
+seeds:
+  # Open-source software pioneers
+  - handle: torvalds
+    platform: github
+    note: Linux kernel creator; ≥30 years of public Git history
+  - handle: gvanrossum
+    platform: github
+    note: Python BDFL emeritus
+  - handle: gaearon
+    platform: github
+    note: React core; Bluesky/Twitter cross-linked
+
+  # Standards / web infrastructure
+  - handle: timbl
+    platform: github
+    note: Tim Berners-Lee; W3C and inventor of the web
+  - handle: jbenet
+    platform: github
+    note: Juan Benet; IPFS founder
+
+  # Cryptography / security research
+  - handle: matthew_d_green
+    platform: twitter
+    note: Matthew Green, Johns Hopkins cryptographer
+  - handle: schneierblog
+    platform: twitter
+    note: Bruce Schneier; long-running public security record
+  - handle: troyhunt
+    platform: twitter
+    note: Have-I-Been-Pwned founder; verified track record
+
+  # Independent technology journalism
+  - handle: kashhill
+    platform: twitter
+    note: Kashmir Hill, NYT technology reporter
+  - handle: zackwhittaker
+    platform: twitter
+    note: Zack Whittaker, security journalist
+
+  # Academic computer science
+  - handle: ylecun
+    platform: twitter
+    note: Yann LeCun; Turing-award ML researcher
+  - handle: karpathy
+    platform: twitter
+    note: Andrej Karpathy; documented academic and industry track record
+  - handle: AndrewYNg
+    platform: twitter
+    note: Andrew Ng; Stanford / Coursera / DeepLearning.AI
+
+  # Distributed systems / databases researchers
+  - handle: martinkleppmann
+    platform: github
+    note: Author of Designing Data-Intensive Applications
+
+  # Note: this list is intentionally small at v1. Aim is ~100 entries
+  # by v1.5 with broader cultural and linguistic coverage. Submit
+  # additions via PR with link to platform-verifiable evidence.

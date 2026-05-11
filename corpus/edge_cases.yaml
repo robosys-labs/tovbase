@@ -1,0 +1,34 @@
+# Edge-case corpus. v0.2 bootstrap.
+#
+# Profiles that test the algorithm's behavior in ambiguous regions:
+# legitimately new accounts, dormant historical accounts, claim/real-name
+# mismatches. The scoring engine should produce defensible scores for each.
+
+version: 1
+label: edge_case
+entries:
+  - handle: __synthetic_new__
+    platform: twitter
+    expected_tier: poor
+    expected_min_score: 100
+    expected_max_score: 350
+    justification: >
+      Synthetic new-account fixture (tests/test_personas.py::TestAmaraOkafor
+      uses similar low-data profile shape). Heavy dampening must apply;
+      score should be Poor/Untrusted until observations accumulate.
+    sources:
+      - tests/conftest.py (new_profile fixture)
+    synthetic: true
+
+  - handle: __synthetic_dormant__
+    platform: github
+    expected_tier: fair
+    expected_min_score: 400
+    expected_max_score: 650
+    justification: >
+      Synthetic profile: long account age, high original activity, no
+      activity in last 12 months. Network trust should drop (edges
+      time-decay) but maturity stays — Fair tier expected.
+    sources:
+      - (none — synthetic fixture)
+    synthetic: true

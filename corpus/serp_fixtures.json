@@ -1,0 +1,55 @@
+{
+  "_comment": "Manually captured Google SERP results. Used by _FixtureBackend when TRUSTGATE_SERP_FIXTURE points here. Source: user-supplied screenshot 2026-05-11.",
+  "queries": [
+    {
+      "query": "\"opeyemi awoyemi\"",
+      "results": [
+        {
+          "title": "LinkedIn · Opeyemi Awoyemi · 21.4K+ followers",
+          "url": "https://www.linkedin.com/in/opeawo",
+          "snippet": "Opeyemi Awoyemi - Building .cv. Founded ennovateNIGERIA in 2004 at age 16. Responsible for web design and application development, digital marketing and brand architecture for companies and ... 21.4K+ followers"
+        },
+        {
+          "title": "Opeyemi Awoyemi - opeawo.cv",
+          "url": "https://opeawo.cv",
+          "snippet": "Opeyemi Awoyemi. Angel Investor in over 50 startups (3x DPI, 16x MOIC) across fintech, crypto, e-commerce, HR, SaaS, healthcare, marketplaces, proptech, and SaaS. Portfolio ..."
+        },
+        {
+          "title": "Instagram · opeawo · 4.8K+ followers",
+          "url": "https://www.instagram.com/opeawo",
+          "snippet": "Opeyemi Awoyemi (@opeawo). Founder of Queen Beauty Lounge!!! Over 10 years ago, I gingered her to start doing make up professionally and she did! She expanded into a salon and eventually ... 4.8K+ followers"
+        },
+        {
+          "title": "X · opeawo · 14.2K+ followers",
+          "url": "https://x.com/opeawo",
+          "snippet": "Opeyemi Awoyemi (@opeawo) / Posts / X. Opeyemi Awoyemi (@opeawo) - Posts - making .cv. names available to all humans. hello.cv GP at @fastforwardvc | Wharton MBA | prev... | X (formerly Twitter) 14.2K+ followers"
+        },
+        {
+          "title": "About – Opeyemi Awoyemi - Medium",
+          "url": "https://medium.com/@opeawo/about",
+          "snippet": "Opeyemi is a serial technology entrepreneur and investor from Nigeria. He is currently the General Partner of Fast Forward, an impact venture studio and pre-..."
+        },
+        {
+          "title": "Opeyemi Awoyemi - mynamelastname.cv",
+          "url": "https://mynamelastname.cv",
+          "snippet": "Opeyemi Awoyemi. Highly accomplished technology entrepreneur, investor, and product leader with 16+ years of experience driving innovation and growth across diverse sectors in ..."
+        },
+        {
+          "title": "Opeyemi Awoyemi - Founder and Managing Partner @ Fast Forward Venture Studio - Crunchbase",
+          "url": "https://www.crunchbase.com/person/opeyemi-awoyemi",
+          "snippet": "Opeyemi Awoyemi is the Founder and Managing Partner of Fast Forward Venture Studio and Fund. He previously worked at Moneymie as a Co-Founder. Opeyemi Awoyemi attended The Wharton School."
+        },
+        {
+          "title": "Jobberman Nigeria - Crunchbase",
+          "url": "https://www.crunchbase.com/organization/jobberman-nigeria",
+          "snippet": "Organization founded: Jobberman Nigeria. Founded by Opeyemi Awoyemi."
+        },
+        {
+          "title": "Facebook · Opeyemi Awoyemi",
+          "url": "https://www.facebook.com/opeawo",
+          "snippet": "Opeyemi Awoyemi on Facebook"
+        }
+      ]
+    }
+  ]
+}

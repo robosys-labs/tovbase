@@ -1,0 +1,26 @@
+# Seed entries for the "known bad" corpus. v0.2 bootstrap.
+#
+# Entries here MUST link to public sources confirming the bad behavior — a
+# journalistic exposé, a platform transparency report, or a public
+# disclosure. See corpus/README.md.
+#
+# This file ships intentionally sparse. The OSS launch invites contributions
+# of well-documented entries; we explicitly do not bulk-import from private
+# threat-intel feeds.
+
+version: 1
+label: known_bad
+entries:
+  - handle: __synthetic_bot_001__
+    platform: twitter
+    expected_tier: untrusted
+    expected_min_score: 0
+    expected_max_score: 349
+    justification: >
+      Synthetic test fixture used by tests/test_personas.py::TestGhostTrader.
+      Replicates a low-engagement, anomaly-rich profile pattern. Not a real
+      account; included so the corpus runner has at least one entry per
+      tier-bottom while community contributions populate real entries.
+    sources:
+      - tests/test_personas.py (TestGhostTrader fixture)
+    synthetic: true

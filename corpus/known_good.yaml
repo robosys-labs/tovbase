@@ -1,0 +1,100 @@
+# Seed entries for the "known good" corpus. v0.2 bootstrap.
+# Each entry targets a tier; the algorithm should produce a score in
+# [expected_min_score, expected_max_score]. See corpus/README.md.
+
+version: 1
+label: known_good
+entries:
+  - handle: torvalds
+    platform: github
+    expected_tier: excellent
+    expected_min_score: 850
+    expected_max_score: 1000
+    justification: >
+      Linux kernel creator. 30+ years public Git history.
+    sources:
+      - https://github.com/torvalds
+      - https://en.wikipedia.org/wiki/Linus_Torvalds
+
+  - handle: gvanrossum
+    platform: github
+    expected_tier: excellent
+    expected_min_score: 850
+    expected_max_score: 1000
+    justification: Python BDFL emeritus. Multi-decade public software record.
+    sources:
+      - https://github.com/gvanrossum
+      - https://en.wikipedia.org/wiki/Guido_van_Rossum
+
+  - handle: timbl
+    platform: github
+    expected_tier: excellent
+    expected_min_score: 850
+    expected_max_score: 1000
+    justification: Tim Berners-Lee. Inventor of the web. W3C director.
+    sources:
+      - https://en.wikipedia.org/wiki/Tim_Berners-Lee
+
+  - handle: gaearon
+    platform: github
+    expected_tier: excellent
+    expected_min_score: 800
+    expected_max_score: 1000
+    justification: Dan Abramov. Redux/React core. Cross-linked Bluesky/Twitter.
+    sources:
+      - https://github.com/gaearon
+      - https://bsky.app/profile/danabra.mov
+
+  - handle: martinkleppmann
+    platform: github
+    expected_tier: excellent
+    expected_min_score: 820
+    expected_max_score: 1000
+    justification: Author of "Designing Data-Intensive Applications".
+    sources:
+      - https://martin.kleppmann.com/
+
+  - handle: karpathy
+    platform: twitter
+    expected_tier: excellent
+    expected_min_score: 830
+    expected_max_score: 1000
+    justification: Andrej Karpathy. Documented academic + industry track record.
+    sources:
+      - https://karpathy.ai/
+
+  - handle: ylecun
+    platform: twitter
+    expected_tier: excellent
+    expected_min_score: 850
+    expected_max_score: 1000
+    justification: Yann LeCun. Turing-award ML researcher.
+    sources:
+      - https://yann.lecun.com/
+
+  - handle: schneierblog
+    platform: twitter
+    expected_tier: excellent
+    expected_min_score: 850
+    expected_max_score: 1000
+    justification: Bruce Schneier. Long-running public security record.
+    sources:
+      - https://www.schneier.com/
+
+  - handle: troyhunt
+    platform: twitter
+    expected_tier: excellent
+    expected_min_score: 800
+    expected_max_score: 1000
+    justification: Have I Been Pwned founder. Verified track record.
+    sources:
+      - https://www.troyhunt.com/
+
+  - handle: kashhill
+    platform: twitter
+    expected_tier: good
+    expected_min_score: 750
+    expected_max_score: 950
+    justification: Kashmir Hill. NYT tech reporter.
+    sources:
+      - https://www.nytimes.com/by/kashmir-hill
