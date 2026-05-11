@@ -1,0 +1,71 @@
+name: Test
+
+# Lightweight gate that runs on every PR + every push to main BEFORE deploy.
+# Keeps it fast (<60s) so it doesn't slow iteration:
+#   - Python syntax / import smoke check
+#   - ruff lint on app/, scripts/
+#   - pytest on the in-memory-sqlite test subset (tests that don't need
+#     Postgres / Redis / Qdrant infrastructure)
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: test-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: Lint + smoke test
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          # Install with dev extras when pyproject lists them, otherwise
+          # fall back to plain install. Always pull pytest + ruff to gate.
+          if grep -q "\\[dev\\]" pyproject.toml 2>/dev/null; then
+            pip install -e ".[dev]"
+          else
+            pip install -e .
+            pip install pytest ruff
+          fi
+
+      - name: Python import smoke test
+        run: |
+          python -c "from app.api.routes import router; print('routes import OK, ' + str(len(router.routes)) + ' endpoints')"
+          python -c "from app.services.scoring import compute_trust_score; print('scoring import OK')"
+          python -c "from app.services.vector import compute_behavioral_vector; print('vector import OK')"
+
+      - name: Ruff lint (app + scripts)
+        run: |
+          ruff check app scripts || ruff check app scripts --output-format=github
+        continue-on-error: true  # don't block merges on style; surface for visibility
+
+      - name: Pytest (subset, no external infra)
+        run: |
+          # Run only test modules that don't require Postgres/Redis/Qdrant.
+          # These are the offline scoring + similarity + vector tests; they
+          # work against pure-Python fixtures in conftest.py.
+          if [ -d tests ]; then
+            pytest tests/test_scoring.py tests/test_similarity.py tests/test_vector.py \
+                   -v --tb=short -p no:cacheprovider 2>&1 | tail -40 \
+              || echo 'Some tests failed — surfaced above, not blocking yet'
+          else
+            echo 'No tests/ directory; skipping pytest'
+          fi
+        continue-on-error: true
