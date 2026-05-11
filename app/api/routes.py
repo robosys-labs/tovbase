@@ -661,6 +661,147 @@ def generate_report(req: ReportRequest, db: Session = Depends(get_db)):
 
 
 # ---------------------------------------------------------------------------
+# Embeddable score badges — paste-anywhere SVG badges for any profile.
+#
+#   GET /v1/badge/{platform}/{handle}.svg          mini shields.io-style badge
+#   GET /v1/badge/{platform}/{handle}/card.svg     320x180 detail card
+#   GET /v1/embed/{platform}/{handle}.html         iframe-embeddable HTML card
+# ---------------------------------------------------------------------------
+
+
+def _resolve_score_for_badge(db: Session, platform: str, handle: str) -> dict | None:
+    """Look up the score + sub-score breakdown for badge rendering.
+
+    Returns a dict shaped for the badge service, or None when the handle
+    isn't known. Mirrors GET /v1/score/{platform}/{handle} but skips the
+    response model machinery.
+    """
+    profile = db.execute(
+        select(IdentityProfile).where(
+            IdentityProfile.handle == handle,
+            IdentityProfile.platform == platform,
+        )
+    ).scalar_one_or_none()
+    if not profile:
+        return None
+
+    canonical_id = profile.canonical_identity_id
+    if canonical_id:
+        profiles = list(
+            db.execute(
+                select(IdentityProfile).where(
+                    IdentityProfile.canonical_identity_id == canonical_id
+                )
+            ).scalars()
+        )
+    else:
+        profiles = [profile]
+
+    vectors = {str(p.id): compute_behavioral_vector(p) for p in profiles}
+    bd = compute_trust_score(profiles, vectors)
+    return {
+        "canonical_id": str(canonical_id) if canonical_id else str(profile.id),
+        "display_name": profile.display_name or handle,
+        "final_score": bd.final_score,
+        "tier": bd.tier,
+        "confidence": bd.confidence,
+        "sub_scores": {
+            "Existence": bd.existence,
+            "Consistency": bd.consistency,
+            "Engagement": bd.engagement,
+            "Cross-Platform": bd.cross_platform,
+            "Maturity": bd.maturity,
+        },
+    }
+
+
+@router.get("/badge/{platform}/{handle}.svg", response_model=None)
+def score_badge_svg(platform: str, handle: str, db: Session = Depends(get_db)):
+    """Mini shields.io-style score badge — drop into Markdown / READMEs."""
+    from fastapi.responses import Response
+
+    from app.services.badge import mini_badge_svg
+
+    info = _resolve_score_for_badge(db, platform, handle)
+    if not info:
+        svg = mini_badge_svg(0, "untrusted")
+    else:
+        svg = mini_badge_svg(info["final_score"], info["tier"])
+    return Response(
+        content=svg,
+        media_type="image/svg+xml",
+        headers={"Cache-Control": "public, max-age=300"},
+    )
+
+
+@router.get("/badge/{platform}/{handle}/card.svg", response_model=None)
+def score_card_svg(platform: str, handle: str, db: Session = Depends(get_db)):
+    """320x180 detail card with sub-score bars."""
+    from fastapi.responses import Response
+
+    from app.services.badge import detail_card_svg
+
+    info = _resolve_score_for_badge(db, platform, handle)
+    if not info:
+        return Response(
+            content=detail_card_svg(
+                display_name=f"{platform}/{handle}",
+                score=0,
+                tier="untrusted",
+                sub_scores={"Existence": 0, "Consistency": 0},
+                confidence=0.0,
+            ),
+            media_type="image/svg+xml",
+            headers={"Cache-Control": "public, max-age=300"},
+        )
+    return Response(
+        content=detail_card_svg(
+            display_name=info["display_name"],
+            score=info["final_score"],
+            tier=info["tier"],
+            sub_scores=info["sub_scores"],
+            confidence=info["confidence"],
+        ),
+        media_type="image/svg+xml",
+        headers={"Cache-Control": "public, max-age=300"},
+    )
+
+
+@router.get("/embed/{platform}/{handle}.html", response_model=None)
+def score_embed_html(platform: str, handle: str, db: Session = Depends(get_db)):
+    """iframe-friendly HTML card with click-through to the full report."""
+    from fastapi.responses import Response
+
+    from app.services.badge import embed_html
+
+    info = _resolve_score_for_badge(db, platform, handle)
+    if not info:
+        return Response(
+            content="<!doctype html><body>Trustgate: handle not found</body>",
+            media_type="text/html",
+            status_code=404,
+        )
+    html = embed_html(
+        canonical_id=info["canonical_id"],
+        display_name=info["display_name"],
+        score=info["final_score"],
+        tier=info["tier"],
+        sub_scores=info["sub_scores"],
+        confidence=info["confidence"],
+        algorithm_version="1.0",
+    )
+    return Response(
+        content=html,
+        media_type="text/html",
+        headers={
+            "Cache-Control": "public, max-age=300",
+            "X-Frame-Options": "ALLOWALL",
+            "Content-Security-Policy": "frame-ancestors *",
+        },
+    )
+
+
+# ---------------------------------------------------------------------------
 # GET /v1/download/extension/{filename}
 # Serve bundled Chrome extension zips directly from the backend image.
 # Lets users install without depending on the Next.js web container.
