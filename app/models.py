@@ -434,3 +434,35 @@ class TopicEntry(Base):
     ingested_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow)
 
     source: Mapped[FeedSource | None] = relationship(back_populates="entries")
+
+
+# ---------------------------------------------------------------------------
+# PendingClaim — profile ownership verification requests
+# ---------------------------------------------------------------------------
+
+
+class PendingClaim(Base):
+    """A pending profile claim awaiting verification.
+
+    Lifecycle: pending -> verified | expired.
+    Created by POST /v1/profile/claim, resolved by POST /v1/profile/verify.
+    """
+
+    __tablename__ = "pending_claims"
+    __table_args__ = (
+        Index("idx_pc_handle_platform", "handle", "platform"),
+        Index("idx_pc_status", "status"),
+        Index("idx_pc_expires", "expires_at"),
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
+    handle: Mapped[str] = mapped_column(String(255), nullable=False)
+    platform: Mapped[str] = mapped_column(String(32), nullable=False)
+    canonical_identity_id: Mapped[uuid.UUID | None] = mapped_column(
+        Uuid, ForeignKey("canonical_identities.id"), nullable=True
+    )
+    challenge: Mapped[str] = mapped_column(String(255), nullable=False)
+    verification_method: Mapped[str] = mapped_column(String(32), nullable=False)
+    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow)
+    status: Mapped[str] = mapped_column(String(16), default="pending")

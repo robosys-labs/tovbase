@@ -5,7 +5,9 @@
   "scripts": {
     "dev": "next dev --port 3002",
     "build": "next build",
-    "start": "next start --port 3002"
+    "start": "next start --port 3002",
+    "test": "vitest",
+    "test:run": "vitest run"
   },
   "dependencies": {
     "next": "^15.1",
@@ -13,11 +15,16 @@
     "react-dom": "^19.0"
   },
   "devDependencies": {
+    "@tailwindcss/postcss": "^4",
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.2",
     "@types/node": "^22",
     "@types/react": "^19",
     "@types/react-dom": "^19",
-    "typescript": "^5.7",
+    "@vitejs/plugin-react": "^6.0.1",
+    "jsdom": "^29.0.1",
     "tailwindcss": "^4",
-    "@tailwindcss/postcss": "^4"
+    "typescript": "^5.7",
+    "vitest": "^4.1.2"
   }
 }

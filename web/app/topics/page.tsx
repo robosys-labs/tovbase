@@ -194,8 +194,7 @@ export default function TopicsPage() {
     );
   }
 
-  async function handleSearch(e: React.FormEvent) {
-    e.preventDefault();
+  async function performSearch() {
     if (!query.trim()) return;
 
     setLoading(true);
@@ -217,6 +216,11 @@ export default function TopicsPage() {
     const data = await searchTopics(params);
     setResults(data);
     setLoading(false);
+  }
+
+  async function handleSearch(e: React.FormEvent) {
+    e.preventDefault();
+    performSearch();
   }
 
   return (
@@ -408,12 +412,35 @@ export default function TopicsPage() {
         </div>
       )}
 
-      {/* Empty state — search returned null (API error) */}
+      {/* Error state — search returned null (API error) */}
       {!loading && searched && !results && (
         <div className="text-center py-20">
-          <p className="text-gray-400 text-sm">
-            Something went wrong. Please try again.
+          <svg
+            className="w-10 h-10 text-red-300 mx-auto mb-3"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={1.5}
+              d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+            />
+          </svg>
+          <p className="text-gray-500 text-sm font-medium">
+            Something went wrong
           </p>
+          <p className="text-gray-400 text-xs mt-1">
+            Could not reach the search API. Please try again.
+          </p>
+          <button
+            type="button"
+            onClick={performSearch}
+            className="mt-4 inline-flex items-center gap-2 bg-gray-900 text-white font-medium text-sm rounded-lg px-5 py-2.5 hover:bg-gray-800 transition-colors"
+          >
+            Retry search
+          </button>
         </div>
       )}
     </div>

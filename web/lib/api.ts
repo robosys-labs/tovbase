@@ -225,3 +225,33 @@ export async function searchTopics(
 ): Promise<TopicSearchResponse | null> {
   return apiPost<TopicSearchResponse>("/topics/search", params);
 }
+
+// Profile claiming
+
+export interface ClaimResponse {
+  claim_id: string;
+  challenge: string;
+  verification_method: string;
+  expires_at: string;
+}
+
+export interface VerifyResponse {
+  verified: boolean;
+  canonical_id: string | null;
+  message: string;
+}
+
+export async function claimProfile(data: {
+  handle: string;
+  platform: string;
+  verification_method: "platform_bio" | "dns_txt" | "oauth_token";
+}): Promise<ClaimResponse | null> {
+  return apiPost<ClaimResponse>("/profile/claim", data);
+}
+
+export async function verifyProfile(data: {
+  claim_id: string;
+  proof: string;
+}): Promise<VerifyResponse | null> {
+  return apiPost<VerifyResponse>("/profile/verify", data);
+}
